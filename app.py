@@ -3,11 +3,13 @@ import mysql.connector
 import os 
 import urllib.parse as up
 # Fetch the MySQL URL from environment variables
-MYSQL_URL = os.getenv("mysql://root:HLXIxafyHNKRCJEbELWAtuxLmbgZmxgs@gondola.proxy.rlwy.net:47761/railway")
+MYSQL_URL = os.getenv("MYSQL_URL")
+
 
 # Parse the connection details from the URL
 result = up.urlparse(MYSQL_URL)
-
+port = result.port if result.port else 3306
+print(f"Host: {result.hostname}, User: {result.username}, Port: {port}, Database: {result.path[1:]}")
 # Now, you can access the database connection using the details from the parsed URL.
 db = mysql.connector.connect(
     host=result.hostname,       # Database host from the URL
