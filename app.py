@@ -15,18 +15,25 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(__name__)
 
-# Parse the MYSQL_URL from environment variables
-mysql_url = os.getenv('MYSQL_PUBLIC_URL')
+# Load environment variables from .env
+load_dotenv()
+
+# Retrieve MYSQL_URL from environment variables
+mysql_url = os.getenv('MYSQL_URL')
+
+# Check if MYSQL_URL exists and is not None
+if not mysql_url:
+    raise ValueError("MYSQL_URL is not defined in environment variables")
 
 # Parse the MySQL connection URL
 parsed_url = urlparse(mysql_url)
 
+# Ensure the port is set (if missing, set default port)
+if parsed_url.port is None:
+    parsed_url = parsed_url._replace(port=49052)  # Set default port (49052)
+
 # Establish a database connection
 def get_db_connection():
-    # Check if the port exists in the URL, otherwise set the default
-    if parsed_url.port is None:
-        parsed_url = parsed_url._replace(port=49052)  # Set default port (49052)
-
     db = mysql.connector.connect(
         host=parsed_url.hostname,
         user=parsed_url.username,
