@@ -3,7 +3,10 @@ from urllib.parse import urlparse
 import mysql.connector
 import os
 from dotenv import load_dotenv
+import logging
 
+# Configure logging to track errors or important events in production
+logging.basicConfig(level=logging.INFO)  # 
 # Load environment variables from .env
 load_dotenv()
 app = Flask(__name__)
