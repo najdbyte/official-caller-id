@@ -2,7 +2,9 @@ from flask import Flask, request, jsonify
 import mysql.connector
 
 app = Flask(__name__)
-
+@app.route('/')
+def home():
+    return '✅ Hello from your live Flask app on Railway!'
 # 🔐 Secret API key
 API_KEY = "admin123"  # 👈 You can change this to anything you want
 
