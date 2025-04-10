@@ -126,20 +126,6 @@ def admin_dashboard():
     return jsonify({"registrations": registrations})
 
 
-# Admin dashboard route (GET)
-@app.route('/admin', methods=['GET'])
-def admin_dashboard():
-    # Retrieve unapproved registrations from the database
-    db = get_db_connection()
-    cursor = db.cursor()
-    cursor.execute("SELECT * FROM official_numbers WHERE approved = 0")
-    registrations = cursor.fetchall()
-    cursor.close()
-    db.close()
-
-    return jsonify({"registrations": registrations})
-
-
 # Admin approval route (POST)
 @app.route('/admin/approve', methods=['POST'])
 def approve_registration():
