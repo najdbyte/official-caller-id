@@ -1,6 +1,22 @@
 from flask import Flask, request, jsonify
 import mysql.connector
 import os 
+import urllib.parse as up
+# Fetch the MySQL URL from environment variables
+MYSQL_URL = os.getenv("MYSQL_URL")
+
+# Parse the connection details from the URL
+result = up.urlparse(MYSQL_URL)
+
+# Now, you can access the database connection using the details from the parsed URL.
+db = mysql.connector.connect(
+    host=result.hostname,       # Database host from the URL
+    user=result.username,       # Database username from the URL
+    password=result.password,   # Database password from the URL
+    database=result.path[1:],   # Database name (everything after the first '/')
+    port=result.port            # Database port (from the URL)
+)
+
 app = Flask(__name__)
 db = mysql.connector.connect(
     host=os.environ.get("MYSQLHOST"),
