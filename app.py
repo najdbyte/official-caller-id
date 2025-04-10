@@ -23,6 +23,10 @@ parsed_url = urlparse(mysql_url)
 
 # Establish a database connection
 def get_db_connection():
+    # Check if the port exists in the URL, otherwise set the default
+    if parsed_url.port is None:
+        parsed_url = parsed_url._replace(port=49052)  # Set default port (49052)
+
     db = mysql.connector.connect(
         host=parsed_url.hostname,
         user=parsed_url.username,
@@ -31,6 +35,7 @@ def get_db_connection():
         port=parsed_url.port
     )
     return db
+
 @app.route('/')
 def home():
     return "Flask app is up and running!"
