@@ -1,3 +1,4 @@
+from flask import Flask, request, jsonify
 import os
 import mysql.connector
 from dotenv import load_dotenv
@@ -5,20 +6,22 @@ from dotenv import load_dotenv
 # Load environment variables from .env
 load_dotenv()
 
+# Initialize Flask app
+app = Flask(__name__)
+
 # MySQL connection using environment variables
 def get_db_connection():
     db = mysql.connector.connect(
-        host=os.getenv('MYSQLHOST', 'mysql.railway.internal'),
-        user=os.getenv('MYSQLUSER', 'root'),
+        host=os.getenv('MYSQLHOST', 'mysql.railway.internal'),  # Default to Railway internal host
+        user=os.getenv('MYSQLUSER', 'root'),  # Default to root user
         password=os.getenv('MYSQL_ROOT_PASSWORD'),
         database=os.getenv('MYSQL_DATABASE')
     )
     return db
 
-
 @app.route('/')
 def home():
-    return 'Welcome to the Flask app!'
+    return "Flask app is up and running!"
 
 @app.route('/register', methods=['POST'])
 def register_number():
@@ -70,4 +73,4 @@ def lookup_number():
         return jsonify({"error": f"Database error: {err}"}), 500
 
 if __name__ == '__main__':
-app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5005)), debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5005)), debug=True)
