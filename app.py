@@ -75,6 +75,29 @@ def lookup_number():
 
 # 🆕 POST /register
 @app.route('/register', methods=['POST'])
+@app.route('/lookup', methods=['GET'])
+def lookup_number():
+    number = request.args.get('number')
+
+    if not number:
+        return jsonify({"error": "Missing number parameter"}), 400
+
+    try:
+        cursor = db.cursor()
+        cursor.execute(
+            "SELECT organization_name FROM official_numbers WHERE phone_number = %s",
+            (number,)
+        )
+        result = cursor.fetchone()
+        cursor.close()
+
+        if result:
+            return jsonify({"organization": result[0]})
+        else:
+            return jsonify({"message": "Number not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 def register_number():
     if not is_authorized(request):
         return jsonify({"error": "Unauthorized"}), 401
