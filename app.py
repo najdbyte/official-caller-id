@@ -126,25 +126,35 @@ def admin_dashboard():
     return jsonify({"registrations": registrations})
 
 
-# Admin approval route (should be POST)
+# Admin dashboard route (GET)
+@app.route('/admin', methods=['GET'])
+def admin_dashboard():
+    # Retrieve unapproved registrations from the database
+    db = get_db_connection()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM official_numbers WHERE approved = 0")
+    registrations = cursor.fetchall()
+    cursor.close()
+    db.close()
+
+    return jsonify({"registrations": registrations})
+
+
+# Admin approval route (POST)
 @app.route('/admin/approve', methods=['POST'])
 def approve_registration():
     data = request.get_json()
     registration_id = data.get('id')
 
-    # Connect to MySQL
+    # Update the status to approved (1)
     db = get_db_connection()
     cursor = db.cursor()
+    cursor.execute("UPDATE official_numbers SET approved = 1 WHERE id = %s", (registration_id,))
+    db.commit()
+    cursor.close()
+    db.close()
 
-    try:
-        cursor.execute("UPDATE official_numbers SET approved = 1 WHERE id = %s", (registration_id,))
-        db.commit()
-        cursor.close()
-        db.close()
-        return jsonify({"message": "Registration approved successfully!"}), 200
-
-    except mysql.connector.Error as err:
-        return jsonify({"error": f"Database error: {err}"}), 500
+    return jsonify({"message": "Registration approved successfully!"}), 200
 
 
 # Simulate telecom API request function
