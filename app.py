@@ -5,19 +5,24 @@ import urllib.parse as up
 # Fetch the MySQL URL from environment variables
 MYSQL_URL = os.getenv("MYSQL_URL")
 
-
 # Parse the connection details from the URL
 result = up.urlparse(MYSQL_URL)
+
+# Ensure port is provided, default to 3306 if missing
 port = result.port if result.port else 3306
-print(f"Host: {result.hostname}, User: {result.username}, Port: {port}, Database: {result.path[1:]}")
-# Now, you can access the database connection using the details from the parsed URL.
-db = mysql.connector.connect(
-    host=result.hostname,       # Database host from the URL
-    user=result.username,       # Database username from the URL
-    password=result.password,   # Database password from the URL
-    database=result.path[1:],   # Database name (everything after the first '/')
-    port=result.port            # Database port (from the URL)
-)
+
+# Connect to MySQL using the details from the URL
+try:
+    db = mysql.connector.connect(
+        host=result.hostname,    # MySQL Host (mysql-ywzg.railway.internal)
+        user=result.username,    # MySQL User (root)
+        password=result.password,  # MySQL Password (HLXIxafyHNKRCJEbELWAtuxLmbgZmxgs)
+        database=result.path[1:],  # Database (railway)
+        port=port                # Port (3306)
+    )
+    print("Successfully connected to MySQL")
+except mysql.connector.Error as err:
+    print(f"Error: {err}")
 
 app = Flask(__name__)
 db = mysql.connector.connect(
