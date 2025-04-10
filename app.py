@@ -1,8 +1,37 @@
 from flask import Flask, request, jsonify
 import mysql.connector
-
+import os 
 app = Flask(__name__)
+db = mysql.connector.connect(
+    host=os.environ.get("MYSQLHOST"),
+    user=os.environ.get("MYSQLUSER"),
+    password=os.environ.get("MYSQLPASSWORD"),
+    database=os.environ.get("MYSQLDATABASE"),
+    port=int(os.environ.get("MYSQLPORT", 3306))
+)
+
 @app.route('/')
+@app.route('/register', methods=['POST'])
+def register_number():
+    data = request.get_json()
+    org = data.get('organization')
+    number = data.get('number')
+
+    if not org or not number:
+        return jsonify({"error": "Missing organization or number"}), 400
+
+    try:
+        cursor = db.cursor()
+        cursor.execute(
+            "INSERT INTO official_numbers (organization_name, phone_number) VALUES (%s, %s)",
+            (org, number)
+        )
+        db.commit()
+        cursor.close()
+        return jsonify({"message": "Number registered successfully!"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 def home():
     return '✅ Hello from your live Flask app on Railway!'
 if __name__ == '__main__':
