@@ -20,6 +20,7 @@ def get_db_connection():
         user=os.getenv('MYSQL_USER', 'root'),  # Correct user
         password=os.getenv('MYSQL_ROOT_PASSWORD'),
         database=os.getenv('MYSQL_DATABASE')
+    )
     return db
 
 
