@@ -15,13 +15,11 @@ parsed_url = urlparse(mysql_url)
 
 # Establish a database connection
 def get_db_connection():
-    db = mysql.connector.connect(
-        host=parsed_url.hostname,
-        user=parsed_url.username,
-        password=parsed_url.password,
-        database=parsed_url.path[1:],  # Remove leading '/'
-        port=parsed_url.port
-    )
+     db = mysql.connector.connect(
+        host=os.getenv('MYSQL_HOST', 'shortline.proxy.rlwy.net'),  # Correct host
+        user=os.getenv('MYSQL_USER', 'root'),  # Correct user
+        password=os.getenv('MYSQL_ROOT_PASSWORD'),
+        database=os.getenv('MYSQL_DATABASE')
     return db
 
 
