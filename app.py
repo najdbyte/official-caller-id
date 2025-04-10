@@ -15,7 +15,7 @@ parsed_url = urlparse(mysql_url)
 
 # Establish a database connection
 def get_db_connection():
-     db = mysql.connector.connect(
+    db = mysql.connector.connect(
         host=os.getenv('MYSQL_HOST', 'shortline.proxy.rlwy.net'),  # Correct host
         user=os.getenv('MYSQL_USER', 'root'),  # Correct user
         password=os.getenv('MYSQL_ROOT_PASSWORD'),
