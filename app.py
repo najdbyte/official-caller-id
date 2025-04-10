@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 # Load environment variables from .env
 load_dotenv()
-
+app = Flask(__name__)
 # Parse the MYSQL_URL from environment variables
 mysql_url = os.getenv('MYSQL_URL')
 
@@ -22,6 +22,8 @@ def get_db_connection():
         port=parsed_url.port
     )
     return db
+
+
 
 @app.route('/')
 def home():
