@@ -16,7 +16,7 @@ load_dotenv()
 app = Flask(__name__)
 
 # Parse the MYSQL_URL from environment variables
-mysql_url = os.getenv('MYSQL_URL')
+mysql_url = os.getenv('MYSQL_PUBLIC_URL')
 
 # Parse the MySQL connection URL
 parsed_url = urlparse(mysql_url)
@@ -24,13 +24,13 @@ parsed_url = urlparse(mysql_url)
 # Establish a database connection
 def get_db_connection():
     db = mysql.connector.connect(
-        host=os.getenv('MYSQL_HOST', 'shortline.proxy.rlwy.net'),  # Correct host
-        user=os.getenv('MYSQL_USER', 'root'),  # Correct user
-        password=os.getenv('MYSQL_ROOT_PASSWORD'),
-        database=os.getenv('MYSQL_DATABASE')
+        host=parsed_url.hostname,
+        user=parsed_url.username,
+        password=parsed_url.password,
+        database=parsed_url.path[1:],  # Remove leading '/'
+        port=parsed_url.port
     )
     return db
-
 @app.route('/')
 def home():
     return "Flask app is up and running!"
