@@ -69,10 +69,11 @@ def register_number():
     db = get_db_connection()
     cursor = db.cursor()
     try:
-        cursor.execute(
-            "INSERT INTO official_numbers (organization_name, phone_number) VALUES (%s, %s)",
-            (org, number)
-        )
+       cursor.execute(
+    "INSERT INTO official_numbers (organization_name, phone_number) VALUES (%s, %s)",
+    (org, number)
+)
+
         db.commit()
         cursor.close()
         db.close()
@@ -127,11 +128,10 @@ def approve_registration():
 
     db = get_db_connection()
     cursor = db.cursor()
-    cursor.execute("UPDATE official_numbers SET approved = 1 WHERE id = %s", (registration_id,))
+   cursor.execute("UPDATE official_numbers SET approved = 1 WHERE id = %s", (registration_id,))
     db.commit()
     cursor.close()
     db.close()
-
     return jsonify({"message": "Registration approved successfully!"}), 200
 
 
