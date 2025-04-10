@@ -1,23 +1,20 @@
-from flask import Flask, request, jsonify
-import mysql.connector
 import os
+import mysql.connector
 from dotenv import load_dotenv
 
 # Load environment variables from .env
 load_dotenv()
 
-# Initialize Flask app
-app = Flask(__name__)
-
-# Connect to MySQL Database
+# MySQL connection using environment variables
 def get_db_connection():
     db = mysql.connector.connect(
-        host=os.getenv('DB_HOST'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        database=os.getenv('DB_NAME')
+        host=os.getenv('MYSQLHOST', 'mysql.railway.internal'),
+        user=os.getenv('MYSQLUSER', 'root'),
+        password=os.getenv('MYSQL_ROOT_PASSWORD'),
+        database=os.getenv('MYSQL_DATABASE')
     )
     return db
+
 
 @app.route('/')
 def home():
@@ -73,4 +70,4 @@ def lookup_number():
         return jsonify({"error": f"Database error: {err}"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5005)
+app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5005)), debug=True)
