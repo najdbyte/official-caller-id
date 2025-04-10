@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import logging
 from telecom_api import simulate_telecom_api_request  # Assuming telecom_api.py exists for telecom simulation
 
-# Configure logging
+# Configure logging to track errors or important events in production
 logging.basicConfig(level=logging.INFO)
 
 # Load environment variables from .env
@@ -31,7 +31,6 @@ def get_db_connection():
     )
     return db
 
-
 @app.route('/')
 def home():
     return "Flask app is up and running!"
@@ -41,6 +40,7 @@ def home():
 def register_number():
     data = request.get_json()
 
+    # Extract organization and number
     org = data.get('organization')
     number = data.get('number')
 
@@ -53,7 +53,7 @@ def register_number():
     if telecom_response['status'] == 'error':
         return jsonify(telecom_response), 400
 
-    # Insert into MySQL
+    # Connect to MySQL
     db = get_db_connection()
     cursor = db.cursor()
     try:
@@ -94,8 +94,9 @@ def lookup_number():
 
 
 # Admin dashboard route (should be GET)
-@app.route('/admin')
+@app.route('/admin', methods=['GET'])
 def admin_dashboard():
+    # Retrieve unapproved registrations from the database
     db = get_db_connection()
     cursor = db.cursor()
     cursor.execute("SELECT * FROM official_numbers WHERE approved = 0")
@@ -122,7 +123,12 @@ def approve_registration():
     return jsonify({"message": "Registration approved successfully!"}), 200
 
 
+# Simulate telecom API request function
 def simulate_telecom_api_request(phone_number):
+    """
+    Simulate a telecom API request (for testing).
+    Example: Simulate checking if the phone number is valid.
+    """
     if len(phone_number) == 10:  # Simulate a basic length check for phone numbers
         return {"status": "success", "message": "Number is valid"}
     else:
