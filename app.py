@@ -1,81 +1,76 @@
 from flask import Flask, request, jsonify
 import mysql.connector
-import os 
-import urllib.parse as up
+import os
+from dotenv import load_dotenv
 
-# Initialize the Flask app
+# Load environment variables from .env
+load_dotenv()
+
+# Initialize Flask app
 app = Flask(__name__)
 
-# Fetch the MySQL URL from environment variables (set this in Railway)
-MYSQL_URL = os.getenv("MYSQL_URL")
-print(f"MYSQL_URL: {MYSQL_URL}")  # Add this for debugging purposes
-# Parse the connection details from the URL
-result = up.urlparse(MYSQL_URL)
-
-# Ensure port is provided, default to 3306 if missing
-port = result.port if result.port else 3306
-
-# Connect to MySQL using the details from the URL
-try:
+# Connect to MySQL Database
+def get_db_connection():
     db = mysql.connector.connect(
-        host=result.hostname,    # MySQL Host (mysql-ywzg.railway.internal)
-        user=result.username,    # MySQL User (root)
-        password=result.password,  # MySQL Password (your password)
-        database=result.path[1:],  # Database (railway)
-        port=port                # Port (3306)
+        host=os.getenv('DB_HOST'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        database=os.getenv('DB_NAME')
     )
-    print("Successfully connected to MySQL")
-except mysql.connector.Error as err:
-    print(f"Error: {err}")
+    return db
 
-# Route to register phone number
+@app.route('/')
+def home():
+    return 'Welcome to the Flask app!'
+
 @app.route('/register', methods=['POST'])
 def register_number():
     data = request.get_json()
+
+    # Extract organization and number
     org = data.get('organization')
     number = data.get('number')
 
     if not org or not number:
         return jsonify({"error": "Missing organization or number"}), 400
 
+    # Connect to MySQL
+    db = get_db_connection()
+    cursor = db.cursor()
     try:
-        cursor = db.cursor()
         cursor.execute(
             "INSERT INTO official_numbers (organization_name, phone_number) VALUES (%s, %s)",
             (org, number)
         )
         db.commit()
         cursor.close()
+        db.close()
         return jsonify({"message": "Number registered successfully!"}), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except mysql.connector.Error as err:
+        return jsonify({"error": f"Database error: {err}"}), 500
 
-# Route to look up phone number
 @app.route('/lookup', methods=['GET'])
 def lookup_number():
     phone_number = request.args.get('number')
+    
     if not phone_number:
         return jsonify({"error": "Missing 'number' parameter"}), 400
 
+    # Connect to MySQL
+    db = get_db_connection()
+    cursor = db.cursor()
     try:
-        cursor = db.cursor()
         cursor.execute("SELECT organization_name FROM official_numbers WHERE phone_number = %s", (phone_number,))
         result = cursor.fetchone()
         cursor.close()
+        db.close()
 
         if result:
             return jsonify({"organization": result[0]})
         else:
             return jsonify({"message": "Number not found"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except mysql.connector.Error as err:
+        return jsonify({"error": f"Database error: {err}"}), 500
 
-# Home route for testing the app
-@app.route('/')
-def home():
-    return '✅ Hello from your live Flask app on Railway!'
-
-# Run the app
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5005)
