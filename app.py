@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # Correct import from flask_cors
 from urllib.parse import urlparse
 import mysql.connector
 import os
@@ -7,7 +8,7 @@ import logging
 from telecom_api import simulate_telecom_api_request  # Assuming telecom_api.py exists for telecom simulation
 
 # Configure logging to track errors or important events in production
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 # Load environment variables from .env
 load_dotenv()
@@ -15,8 +16,8 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(__name__)
 
-# Load environment variables from .env
-load_dotenv()
+# Enable CORS for all routes
+CORS(app)
 
 # Retrieve MYSQL_URL from environment variables
 mysql_url = os.getenv('MYSQL_URL')
@@ -49,9 +50,13 @@ def home():
 
 @app.route('/register', methods=['POST'])
 def register_number():
-    # Hardcoding the values for testing
-    org = 'STC'  # Hardcoded organization name
-    number = '1234567890'  # Hardcoded phone number
+    data = request.get_json()
+
+    org = data.get('organization')
+    number = data.get('number')
+
+    if not org or not number:
+        return jsonify({"error": "Missing organization or number"}), 400
 
     # Simulate telecom API request to validate the number
     telecom_response = simulate_telecom_api_request(number)
@@ -74,9 +79,6 @@ def register_number():
     except mysql.connector.Error as err:
         return jsonify({"error": f"Database error: {err}"}), 500
 
-
-
-# This route should be GET, not POST
 @app.route('/lookup', methods=['GET'])
 def lookup_number():
     phone_number = request.args.get('number')
@@ -99,8 +101,6 @@ def lookup_number():
     except mysql.connector.Error as err:
         return jsonify({"error": f"Database error: {err}"}), 500
 
-
-# Admin dashboard route (should be GET)
 @app.route('/admin', methods=['GET'])
 def admin_dashboard():
     # Retrieve unapproved registrations from the database
@@ -113,8 +113,6 @@ def admin_dashboard():
 
     return jsonify({"registrations": registrations})
 
-
-# Admin approval route (POST)
 @app.route('/admin/approve', methods=['POST'])
 def approve_registration():
     data = request.get_json()
@@ -130,7 +128,6 @@ def approve_registration():
 
     return jsonify({"message": "Registration approved successfully!"}), 200
 
-
 # Simulate telecom API request function
 def simulate_telecom_api_request(phone_number):
     """
@@ -142,6 +139,5 @@ def simulate_telecom_api_request(phone_number):
     else:
         return {"status": "error", "message": "Invalid number"}
 
-
 if __name__ == '__main__':
-   app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5006)), debug=True)
+   app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5005)), debug=True)
