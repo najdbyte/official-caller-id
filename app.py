@@ -69,10 +69,16 @@ def register_number():
     db = get_db_connection()
     cursor = db.cursor()
     try:
-       cursor.execute(
-    "INSERT INTO official_numbers (organization_name, phone_number) VALUES (%s, %s)",
-    (org, number)
-)
+        cursor.execute(
+            "INSERT INTO official_numbers (organization_name, phone_number) VALUES (%s, %s)",
+            (org, number)
+        )
+        db.commit()  # Make sure this line is properly indented
+        cursor.close()
+        db.close()
+        return jsonify({"message": "Number registered successfully!"}), 201
+    except mysql.connector.Error as err:
+        return jsonify({"error": f"Database error: {err}"}), 500
 
         db.commit()
         cursor.close()
@@ -126,13 +132,19 @@ def approve_registration():
     data = request.get_json()
     registration_id = data.get('id')
 
+    # Connect to MySQL
     db = get_db_connection()
     cursor = db.cursor()
-   cursor.execute("UPDATE official_numbers SET approved = 1 WHERE id = %s", (registration_id,))
-    db.commit()
-    cursor.close()
-    db.close()
-    return jsonify({"message": "Registration approved successfully!"}), 200
+
+    try:
+        cursor.execute("UPDATE official_numbers SET approved = 1 WHERE id = %s", (registration_id,))
+        db.commit()
+        cursor.close()
+        db.close()
+        return jsonify({"message": "Registration approved successfully!"}), 200
+
+    except mysql.connector.Error as err:
+        return jsonify({"error": f"Database error: {err}"}), 500
 
 
 # Simulate telecom API request function
