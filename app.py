@@ -4,9 +4,10 @@ import mysql.connector
 import os
 from dotenv import load_dotenv
 import logging
+from telecom_api import simulate_telecom_api_request  # Assuming telecom_api.py exists for telecom simulation
 
-# Configure logging to track errors or important events in production
-logging.basicConfig(level=logging.INFO)  # Adjust log level for production
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 # Load environment variables from .env
 load_dotenv()
@@ -30,15 +31,16 @@ def get_db_connection():
     )
     return db
 
+
 @app.route('/')
 def home():
     return "Flask app is up and running!"
 
+# This route should be POST, not GET
 @app.route('/register', methods=['POST'])
 def register_number():
     data = request.get_json()
 
-    # Extract organization and number
     org = data.get('organization')
     number = data.get('number')
 
@@ -51,7 +53,7 @@ def register_number():
     if telecom_response['status'] == 'error':
         return jsonify(telecom_response), 400
 
-    # Connect to MySQL
+    # Insert into MySQL
     db = get_db_connection()
     cursor = db.cursor()
     try:
@@ -66,6 +68,8 @@ def register_number():
     except mysql.connector.Error as err:
         return jsonify({"error": f"Database error: {err}"}), 500
 
+
+# This route should be GET, not POST
 @app.route('/lookup', methods=['GET'])
 def lookup_number():
     phone_number = request.args.get('number')
@@ -73,7 +77,6 @@ def lookup_number():
     if not phone_number:
         return jsonify({"error": "Missing 'number' parameter"}), 400
 
-    # Connect to MySQL
     db = get_db_connection()
     cursor = db.cursor()
     try:
@@ -89,9 +92,10 @@ def lookup_number():
     except mysql.connector.Error as err:
         return jsonify({"error": f"Database error: {err}"}), 500
 
+
+# Admin dashboard route (should be GET)
 @app.route('/admin')
 def admin_dashboard():
-    # Retrieve unapproved registrations from the database
     db = get_db_connection()
     cursor = db.cursor()
     cursor.execute("SELECT * FROM official_numbers WHERE approved = 0")
@@ -101,12 +105,13 @@ def admin_dashboard():
 
     return jsonify({"registrations": registrations})
 
+
+# Admin approval route (should be POST)
 @app.route('/admin/approve', methods=['POST'])
 def approve_registration():
     data = request.get_json()
     registration_id = data.get('id')
 
-    # Update the status to approved (1)
     db = get_db_connection()
     cursor = db.cursor()
     cursor.execute("UPDATE official_numbers SET approved = 1 WHERE id = %s", (registration_id,))
@@ -116,16 +121,13 @@ def approve_registration():
 
     return jsonify({"message": "Registration approved successfully!"}), 200
 
-# Simulate telecom API request function
+
 def simulate_telecom_api_request(phone_number):
-    """
-    Simulate a telecom API request (for testing).
-    Example: Simulate checking if the phone number is valid.
-    """
     if len(phone_number) == 10:  # Simulate a basic length check for phone numbers
         return {"status": "success", "message": "Number is valid"}
     else:
         return {"status": "error", "message": "Invalid number"}
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5005)))
