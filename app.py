@@ -3,7 +3,7 @@ import mysql.connector
 import os 
 import urllib.parse as up
 # Fetch the MySQL URL from environment variables
-MYSQL_URL = os.getenv("MYSQL_URL")
+MYSQL_URL = os.getenv("mysql://root:HLXIxafyHNKRCJEbELWAtuxLmbgZmxgs@gondola.proxy.rlwy.net:47761/railway")
 
 # Parse the connection details from the URL
 result = up.urlparse(MYSQL_URL)
