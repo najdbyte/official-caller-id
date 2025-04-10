@@ -47,25 +47,19 @@ def get_db_connection():
 def home():
     return "Flask app is up and running!"
 
-# This route should be POST, not GET
 @app.route('/register', methods=['POST'])
 def register_number():
-    data = request.get_json()
+    # Hardcoding the values for testing
+    org = 'STC'  # Hardcoded organization name
+    number = '1234567890'  # Hardcoded phone number
 
-    # Extract organization and number
-    org = data.get('organization')
-    number = data.get('number')
-
-    if not org or not number:
-        return jsonify({"error": "Missing organization or number"}), 400
-
-    # Simulate telecom API request
+    # Simulate telecom API request to validate the number
     telecom_response = simulate_telecom_api_request(number)
 
     if telecom_response['status'] == 'error':
         return jsonify(telecom_response), 400
 
-    # Connect to MySQL
+    # Connect to MySQL and insert the data into the database
     db = get_db_connection()
     cursor = db.cursor()
     try:
@@ -73,19 +67,13 @@ def register_number():
             "INSERT INTO official_numbers (organization_name, phone_number) VALUES (%s, %s)",
             (org, number)
         )
-        db.commit()  # Make sure this line is properly indented
+        db.commit()  # Commit the transaction to the database
         cursor.close()
         db.close()
         return jsonify({"message": "Number registered successfully!"}), 201
     except mysql.connector.Error as err:
         return jsonify({"error": f"Database error: {err}"}), 500
 
-        db.commit()
-        cursor.close()
-        db.close()
-        return jsonify({"message": "Number registered successfully!"}), 201
-    except mysql.connector.Error as err:
-        return jsonify({"error": f"Database error: {err}"}), 500
 
 
 # This route should be GET, not POST
