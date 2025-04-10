@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 # Fetch the MySQL URL from environment variables (set this in Railway)
 MYSQL_URL = os.getenv("MYSQL_URL")
-
+print(f"MYSQL_URL: {MYSQL_URL}")  # Add this for debugging purposes
 # Parse the connection details from the URL
 result = up.urlparse(MYSQL_URL)
 
