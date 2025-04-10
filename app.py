@@ -144,4 +144,4 @@ def simulate_telecom_api_request(phone_number):
 
 
 if __name__ == '__main__':
-   app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5005)), debug=True)
+   app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5006)), debug=True)
