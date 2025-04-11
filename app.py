@@ -1,158 +1,143 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # Correct import from flask_cors
+from urllib.parse import urlparse
 import mysql.connector
+import os
+from dotenv import load_dotenv
+import logging
+from telecom_api import simulate_telecom_api_request  # Assuming telecom_api.py exists for telecom simulation
 
+# Configure logging to track errors or important events in production
+logging.basicConfig(level=logging.DEBUG)
+
+# Load environment variables from .env
+load_dotenv()
+
+# Initialize Flask app
 app = Flask(__name__)
 
-# 🔐 Secret API key
-API_KEY = "admin123"  # 👈 You can change this to anything you want
+# Enable CORS for all routes
+CORS(app)
 
-# 🔐 Check if request is authorized
-def is_authorized(request):
-    apikey = request.args.get("apikey")
-    return apikey == API_KEY
+# Retrieve MYSQL_URL from environment variables
+mysql_url = os.getenv('MYSQL_URL')
 
-# 🔌 Connect to MySQL
+# Check if MYSQL_URL exists and is not None
+if not mysql_url:
+    raise ValueError("MYSQL_URL is not defined in environment variables")
+
+# Parse the MySQL connection URL
+parsed_url = urlparse(mysql_url)
+
+# Ensure the port is set (if missing, set default port)
+if parsed_url.port is None:
+    parsed_url = parsed_url._replace(port=49052)  # Set default port (49052)
+
+# Establish a database connection
 def get_db_connection():
-    return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="6250",  # Change this if you use a password
-        database="official_caller_id"
+    db = mysql.connector.connect(
+        host=parsed_url.hostname,
+        user=parsed_url.username,
+        password=parsed_url.password,
+        database=parsed_url.path[1:],  # Remove leading '/'
+        port=parsed_url.port
     )
+    return db
 
-# 🔍 GET /lookup
+@app.route('/')
+def home():
+    return "Flask app is up and running!"
+
+@app.route('/register', methods=['POST'])
+def register_number():
+    data = request.get_json()
+
+    org = data.get('organization')
+    number = data.get('number')
+
+    if not org or not number:
+        return jsonify({"error": "Missing organization or number"}), 400
+
+    # Simulate telecom API request to validate the number
+    telecom_response = simulate_telecom_api_request(number)
+
+    if telecom_response['status'] == 'error':
+        return jsonify(telecom_response), 400
+
+    # Connect to MySQL and insert the data into the database
+    db = get_db_connection()
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO official_numbers (organization_name, phone_number) VALUES (%s, %s)",
+            (org, number)
+        )
+        db.commit()  # Commit the transaction to the database
+        cursor.close()
+        db.close()
+        return jsonify({"message": "Number registered successfully!"}), 201
+    except mysql.connector.Error as err:
+        return jsonify({"error": f"Database error: {err}"}), 500
+
 @app.route('/lookup', methods=['GET'])
 def lookup_number():
     phone_number = request.args.get('number')
+    
     if not phone_number:
         return jsonify({"error": "Missing 'number' parameter"}), 400
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT organization_name FROM registered_numbers WHERE phone_number = %s", (phone_number,))
-    result = cursor.fetchone()
-    conn.close()
+    db = get_db_connection()
+    cursor = db.cursor()
+    try:
+        cursor.execute("SELECT organization_name FROM official_numbers WHERE phone_number = %s", (phone_number,))
+        result = cursor.fetchone()
+        cursor.close()
+        db.close()
 
-    if result:
-        return jsonify({"caller": result[0]})
+        if result:
+            return jsonify({"organization": result[0]})
+        else:
+            return jsonify({"message": "Number not found"}), 404
+    except mysql.connector.Error as err:
+        return jsonify({"error": f"Database error: {err}"}), 500
+
+@app.route('/admin', methods=['GET'])
+def admin_dashboard():
+    # Retrieve unapproved registrations from the database
+    db = get_db_connection()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM official_numbers WHERE approved = 0")
+    registrations = cursor.fetchall()
+    cursor.close()
+    db.close()
+
+    return jsonify({"registrations": registrations})
+
+@app.route('/admin/approve', methods=['POST'])
+def approve_registration():
+    data = request.get_json()
+    registration_id = data.get('id')
+
+    # Update the status to approved (1)
+    db = get_db_connection()
+    cursor = db.cursor()
+    cursor.execute("UPDATE official_numbers SET approved = 1 WHERE id = %s", (registration_id,))
+    db.commit()
+    cursor.close()
+    db.close()
+
+    return jsonify({"message": "Registration approved successfully!"}), 200
+
+# Simulate telecom API request function
+def simulate_telecom_api_request(phone_number):
+    """
+    Simulate a telecom API request (for testing).
+    Example: Simulate checking if the phone number is valid.
+    """
+    if len(phone_number) == 10:  # Simulate a basic length check for phone numbers
+        return {"status": "success", "message": "Number is valid"}
     else:
-        return jsonify({"caller": "Unknown number"})
+        return {"status": "error", "message": "Invalid number"}
 
-# 🆕 POST /register
-@app.route('/register', methods=['POST'])
-def register_number():
-    if not is_authorized(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
-    data = request.get_json()
-    phone_number = data.get('phone_number')
-    organization_name = data.get('organization_name')
-
-    if not phone_number or not organization_name:
-        return jsonify({"error": "Missing phone number or organization name"}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute(
-            "INSERT INTO registered_numbers (phone_number, organization_name) VALUES (%s, %s)",
-            (phone_number, organization_name)
-        )
-        conn.commit()
-    except mysql.connector.Error as err:
-        conn.close()
-        return jsonify({"error": str(err)}), 500
-    finally:
-        conn.close()
-
-    return jsonify({"message": "Number registered successfully!"}), 201
-
-# 📋 GET /all
-@app.route('/all', methods=['GET'])
-def get_all_numbers():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, phone_number, organization_name FROM registered_numbers")
-    rows = cursor.fetchall()
-    conn.close()
-
-    numbers = []
-    for row in rows:
-        numbers.append({
-            "id": row[0],
-            "phone_number": row[1],
-            "organization_name": row[2]
-        })
-
-    return jsonify(numbers)
-
-# 🔁 PUT /update
-@app.route('/update', methods=['PUT'])
-def update_number():
-    if not is_authorized(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
-    data = request.get_json()
-    phone_number = data.get('phone_number')
-    new_name = data.get('organization_name')
-
-    if not phone_number or not new_name:
-        return jsonify({"error": "Missing phone number or new organization name"}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM registered_numbers WHERE phone_number = %s", (phone_number,))
-    if cursor.fetchone() is None:
-        conn.close()
-        return jsonify({"error": "Number not found"}), 404
-
-    try:
-        cursor.execute(
-            "UPDATE registered_numbers SET organization_name = %s WHERE phone_number = %s",
-            (new_name, phone_number)
-        )
-        conn.commit()
-    except mysql.connector.Error as err:
-        conn.close()
-        return jsonify({"error": str(err)}), 500
-    finally:
-        conn.close()
-
-    return jsonify({"message": "Number updated successfully!"}), 200
-
-# ❌ DELETE /delete
-@app.route('/delete', methods=['DELETE'])
-def delete_number():
-    if not is_authorized(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
-    data = request.get_json()
-    phone_number = data.get('phone_number')
-
-    if not phone_number:
-        return jsonify({"error": "Missing phone number"}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM registered_numbers WHERE phone_number = %s", (phone_number,))
-    if cursor.fetchone() is None:
-        conn.close()
-        return jsonify({"error": "Number not found"}), 404
-
-    try:
-        cursor.execute("DELETE FROM registered_numbers WHERE phone_number = %s", (phone_number,))
-        conn.commit()
-    except mysql.connector.Error as err:
-        conn.close()
-        return jsonify({"error": str(err)}), 500
-    finally:
-        conn.close()
-
-    return jsonify({"message": "Number deleted successfully!"}), 200
-
-# 🚀 Start the server
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5005)), debug=True)
